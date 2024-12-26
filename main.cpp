@@ -1,138 +1,115 @@
 #include "AnsiTerminal.h"
 #include "Spreadsheet.h"
-#include "FormulaParser.h"
 #include "FileManager.h"
 #include <iostream>
 #include <string>
-using namespace std;
 
+using namespace std;
+using namespace Spreadsheet;
 
 int main() {
-    AnsiTerminal terminal; // Create an instance of the terminal class
-
+    AnsiTerminal terminal;  // Create an instance of the terminal class
     terminal.clearScreen(); // Clear the screen at the beginning
 
-    Spreadsheet sheet(100, 100); // Create a 100x100 spreadsheet
-
-
+    Spreadsheet::Spreadsheet sheet(20, 20); // Create a spreadsheet with 20 rows and 20 columns
     int row = 1, col = 1;  // Initial position of the cursor
-    int maxDisplayRows = 20; // Maximum number of rows to display on screen
-    int maxDisplayCols = 80;  // Maximum number of rows to display on screen
+    int maxDisplayRows = 20;  // Maximum number of rows to display on screen
+    int maxDisplayCols = 80;  // Maximum number of columns to display on screen
 
-    // Maximum number of rows to display on screen
-    sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);
-    
+    sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols); // Display the initial state of the spreadsheet
 
-    char key;
-    string input;
+    char key; // Variable for key input
+    string input; // String to hold input for cell data
 
-    // Maximum number of rows to display on screen
+    // Main loop to handle user input and actions
     while (true) {
-        
-        terminal.moveCursor(row + 3, col * 10);
-        
-        
-        key = terminal.getSpecialKey();
+        terminal.moveCursor(row + 3, col * 10);  // Move cursor to the correct position
+        key = terminal.getSpecialKey();  // Get key input
 
-        // Clear the previous position
-       
-
-        // Update position based on arrow key input
         switch (key) {
-            case 'U': row = (row > 1) ? row - 1 : row; break; // Up
-            case 'D': row = (row < 20) ? row + 1 : row; break; // Down
-            case 'R': col = (col < 80) ? col + 1 : col; break; // Right
-            case 'L': col = (col > 1) ? col - 1 : col; break; // Left
-            case 'q': return 0; // Quit program if 'q' is pressed
-            case 's': {
-                terminal.moveCursor(25, 1);  
-                std::cout << "Enter filename to save the spreadsheet: ";
-                std::string saveFilename;
-                char ch;
-                
-                // Read characters one by one
-                while (true) {
-                    ch = std::cin.get();  // Read one character at a time
+            case 'U': row = (row > 1) ? row - 1 : row; break;  // Move cursor up
+            case 'D': row = (row < 20) ? row + 1 : row; break;  // Move cursor down
+            case 'R': col = (col < 80) ? col + 1 : col; break;  // Move cursor right
+            case 'L': col = (col > 1) ? col - 1 : col; break;  // Move cursor left
+            case 'q': return 0;  // Quit program if 'q' is pressed
 
-                    // Stop when the user presses Enter (newline character)
-                    if (ch == '\n') {
-                        break;
-                    }
-
-                    // Display the character immediately after it is entered
-                    std::cout << ch; 
-
-                    // Append the character to the filename string
-                    saveFilename += ch;
-                }
-
-                 // Save the spreadsheet to the specified file
-                FileManager::saveToCSV(sheet, saveFilename);
-                 // Reload the spreadsheet from the same file
-                FileManager::loadFromCSV(sheet, saveFilename);
-                break;
-            } //save spreadsheet if 's' is pressed
-            case 'l': {
-                terminal.moveCursor(25, 1);  
-                std::cout << "Enter filename to load the spreadsheet: ";
-                std::string loadFilename;
-                char ch;
-
-                // Read characters one by one
-                while (true) {
-                ch = std::cin.get();  // Read one character at a time
-
-                // Stop when the user presses Enter (newline character)
-                if (ch == '\n') {
-                    break;
-                }
-
-                // Display the character immediately after it is entered
-                std::cout << ch;
-
-                // Append the character to the filename string
-                loadFilename += ch;
-                }
-
-                // Call loadFromCSV with the user-provided filename
-                FileManager::loadFromCSV(sheet, loadFilename);
-                sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);
-                break;
-            } // Load spreadsheet if 'l' is pressed
-            case 'E': // Enter cell data if 'E' is pressed
-                terminal.moveCursor(1, 1); // Move to the space above the table
-                 cout << sheet.getCellReference(row, col); // Display the cell reference (e.g., A1:)
-                terminal.moveCursor(2, 1);
-                string input;
+            case 'E': {  // Enter cell data if 'E' is pressed
+                terminal.moveCursor(1, 1);  // Move to the space above the table
+                cout << sheet.getCellReference(row, col) << ": "; // Show cell reference
+                terminal.moveCursor(2, 1);  // Move cursor to input position
+                input.clear();  // Clear the input string for new input
                 char ch;
 
                 // Capture input character by character
                 while (true) {
-                ch = cin.get();  // Read one character at a time
-                if (ch == '\n') {  // If Enter is pressed, break out of the loop
-                break;
-                }
+                    ch = cin.get();  // Read one character at a time
+                    if (ch == '\n') {  // If Enter is pressed, stop input
+                        break;
+                    }
 
-                // Echo the character as it is typed
-                cout << ch;
-                // Add the character to the input string
-                input += ch;
+                    cout << ch;  // Echo the character as it is typed
+                    input += ch;  // Add the character to the input string
                 }
 
                 // After input is done, process the input
-                sheet.enterCellData(row, col, input);  // Store the data in the appropriate cell
-                sheet.recalculate();  // Recalculate if necessary
-                sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);  // Display the updated spreadsheet
-                    break;
+                sheet.enterCellData(row, col, input);  // Assuming `enterCellData` is defined in `Spreadsheet` class
+                sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);  // Refresh display
+                break;
+            }
 
+            case 's': {  // Save the spreadsheet to a file if 's' is pressed
+                terminal.moveCursor(25, 1);  // Move the cursor to a specific location on the screen
+                cout << "Enter filename to save the spreadsheet: ";
+                string saveFilename;
+                char c;
+
+                // Capture filename character by character
+                while (true) {
+                    c = std::cin.get();  // Read one character at a time
+
+                    if (c == '\n') {  // Stop when Enter is pressed
+                        break;
+                    }
+
+                    cout << c;  // Display the character immediately
+                    saveFilename += c;  // Append the character to the filename
+                }
+
+                // Save the spreadsheet to the specified file
+                FileManager::saveToCSV(sheet, saveFilename);
+                break;
+            }
+
+           case 'l': {  // Load a spreadsheet from a file if 'l' is pressed
+                terminal.moveCursor(25, 1);  // Move the cursor to a specific location on the screen
+                cout << "Enter filename to load the spreadsheet: ";
+                string loadFilename;
+                char c;
+
+                // Capture filename character by character
+                while (true) {
+                    c = std::cin.get();  // Read one character at a time
+
+                    if (c == '\n') {  // Stop when Enter is pressed
+                        break;
+                    }
+
+                    cout << c;  // Display the character immediately
+                    loadFilename += c;  // Append the character to the filename
+                }
+
+                // Load the spreadsheet from the specified file
+                FileManager::loadFromCSV(sheet, loadFilename);
+
+                // Immediately update and display the spreadsheet
+                terminal.clearScreen();  // Clear the screen to redraw the table
+                sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);
+
+                break;
+            }
+            // You can add additional case statements here as needed
         }
+    }
 
-    }    // Display inverted cursor at new position
-       
-    
-
-    terminal.clearScreen(); // Clear the screen on exit
-    return 0;
+    return 0;  // End the program
 }
-
-

@@ -20,6 +20,7 @@ class Cell {
 		virtual ~Cell() = default;
 		
 		virtual ValueType getType() const = 0; 
+		virtual string getDisplayValue() const = 0;
 		virtual void setNeedsRecalculation(bool needsRecalculation) = 0;
 		virtual bool needsRecalculation() const = 0;
 
@@ -29,6 +30,7 @@ class FormulaCell : public Cell{
 	public:
 		FormulaCell(const string& formula);
 		void setFormula(const string& formula);
+		string getFormula() const ;
 		string getDisplayValue() const;
 		ValueType getType() const ;
 		void setNeedsRecalculation(bool needsRecalculation) ;
@@ -57,6 +59,7 @@ class IntValueCell : public ValueCell{
 	public:
 		IntValueCell(int value = 0);
 		void setValue(int value);
+		int getValue() const;
 		string getDisplayValue() const ;
 
 	private:
@@ -67,6 +70,7 @@ class DoubleValueCell : public ValueCell{
 	public:
 		DoubleValueCell(double value = 0.0);
 		void setValue(double value);
+		double getValue() const;
 		string getDisplayValue() const ;
 
 	private:
@@ -77,6 +81,7 @@ class StringValueCell : public ValueCell{
 	public:
 		StringValueCell(const string& value);
 		void setValue(const string& value);
+		string getValue() const;
 		string getDisplayValue() const ;
 
 	private:

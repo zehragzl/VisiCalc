@@ -1,4 +1,6 @@
 #include "Cell.h"
+using namespace std;
+#include <string>
 
 // FormulaCell Implementation
 FormulaCell::FormulaCell(const string& formula="") : formulaValue(formula) {
@@ -10,6 +12,7 @@ void FormulaCell::setFormula(const string& formula){
 
 	//updateDependencies(this);
 }
+string FormulaCell::getFormula() const {return formulaValue;}
 string FormulaCell::getDisplayValue() const  {
 	return formulaValue;
 }
@@ -47,6 +50,7 @@ IntValueCell::IntValueCell(int value) : ValueCell(Cell::ValueType::NUMBER), intV
 void IntValueCell::setValue(int value) {
 	intValue = value;
 }
+int  IntValueCell::getValue() const {return intValue;}
 
 string IntValueCell::getDisplayValue() const  {
 	return to_string(intValue);
@@ -59,6 +63,7 @@ DoubleValueCell::DoubleValueCell(double value) : ValueCell(Cell::ValueType::NUMB
 void DoubleValueCell::setValue(double value) {
 	doubleValue = value;
 }
+double DoubleValueCell::getValue() const {return doubleValue;}
 string DoubleValueCell::getDisplayValue() const  {
 	std::ostringstream oss;
     oss << doubleValue;
@@ -72,6 +77,7 @@ StringValueCell::StringValueCell(const string& value = "") : ValueCell(Cell::Val
 void StringValueCell::setValue(const string& value) {
 	strValue = value;
 }
+string StringValueCell:: getValue() const {return strValue;}
 
 string StringValueCell::getDisplayValue() const  {
 	return strValue;
