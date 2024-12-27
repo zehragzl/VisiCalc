@@ -2,6 +2,20 @@
 using namespace std;
 #include <string>
 
+double Cell::value() const {
+    // If the cell is of type IntValueCell, return the integer value
+    if (const IntValueCell* intCell = dynamic_cast<const IntValueCell*>(this)) {
+        return static_cast<double>(intCell->getValue());  // Cast the integer to double
+    }
+    
+    // If the cell is of type DoubleValueCell, return the double value
+    if (const DoubleValueCell* doubleCell = dynamic_cast<const DoubleValueCell*>(this)) {
+        return doubleCell->getValue();  // Return the double value
+    }
+
+    // If the cell type is not recognized (e.g., String, Formula, or Empty), return 0
+    return 0.0;
+}
 // FormulaCell Implementation
 FormulaCell::FormulaCell(const string& formula="") : formulaValue(formula) {
 	recalculate = true;

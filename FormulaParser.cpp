@@ -1,68 +1,65 @@
 #include "FormulaParser.h"
 #include <sstream>
 #include <iostream>
-#include <cmath>
-#include <stdexcept>
-#include <algorithm>
-#include <vector>
-#include <numeric>
-#include <regex>
 
-// Constructor: Initializes the formula parser with rows, columns, and cell values
-FormulaParser::FormulaParser(int rows, int cols, std::unordered_map<std::string, double> cellValues)
-    : rows(rows), cols(cols), cellValues(std::move(cellValues)){}
+namespace Spreadsheet {
 
+// Constructor to initialize the spreadsheet
+FormulaParser::FormulaParser(const Spreadsheet& spreadsheet) : spreadsheet(spreadsheet) {}
 
+// Parse a formula like "=A1+A2"
+double FormulaParser::parseFormula(const std::string& formula) {
+    std::string formulaBody = formula.substr(1); // Remove leading '='
 
+    // Split the formula by the '+' sign (for simplicity, only considering addition)
+    std::stringstream ss(formulaBody);
+    std::string token;
+    double result = 0;
 
+    while (std::getline(ss, token, '+')) {
+        // Trim spaces
+        token = trim(token);
 
+        // Extract cell reference (e.g., "A1")
+        int row = 0, col = 0;
+        if (parseCellReference(token, row, col)) {
+            // Fetch the cell's value
+            Cell* cell = spreadsheet.getCell(row, col);
+            if (!cell) {
+                throw std::runtime_error("Cell " + token + " does not exist.");
+            }
 
-
-
-// Function to evaluate a mathematical expression, replacing cell references with actual values
-double FormulaParser::evaluateExpression(const std::string& expr, const std::unordered_map<std::string, double>& cellValues) {
-    std::string modifiedExpr = expr;
-
-    // Replace all cell references in the expression with their respective values
-    for (const std::pair<std::string, double>& pair : cellValues) {
-        const std::string& cellRef = pair.first;
-        double value = pair.second;
-
-        size_t pos = 0;
-        while ((pos = modifiedExpr.find(cellRef, pos)) != std::string::npos) {
-            modifiedExpr.replace(pos, cellRef.length(), std::to_string(value));
-            pos += std::to_string(value).length();
+            // Add the cell's value to the result (assuming numerical cells)
+            result += cell->value();
+        } else {
+            throw std::invalid_argument("Invalid cell reference: " + token);
         }
     }
-
-    // Check if there are any unresolved cell references
-    for (const std::pair<std::string, double>& pair : cellValues) {
-        const std::string& cellRef = pair.first;
-        if (modifiedExpr.find(cellRef) != std::string::npos && cellValues.find(cellRef) == cellValues.end()) {
-            throw std::runtime_error("Cell reference " + cellRef + " is empty or missing.");
-        }
-    }
-
-    // Now, evaluate the modified expression
-    std::istringstream stream(modifiedExpr);
-    double result = 0.0;
-    stream >> result;  // Get the first number
-
-    char op;
-    double num;
-    while (stream >> op >> num) {
-        switch (op) {
-            case '+': result += num; break;
-            case '-': result -= num; break;
-            case '*': result *= num; break;
-            case '/': 
-                if (num == 0.0) throw std::runtime_error("Division by zero");
-                result /= num; 
-                break;
-            default:
-                throw std::runtime_error("Unsupported operator: " + std::string(1, op));
-        }
-    }
-
     return result;
 }
+
+// Trim leading and trailing spaces
+std::string FormulaParser::trim(const std::string& str) const {
+    size_t first = str.find_first_not_of(' ');
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
+// Parse a cell reference like "A1" to extract row and column indices
+bool FormulaParser::parseCellReference(const std::string& ref, int& row, int& col) const {
+    if (ref.empty()) return false;
+
+    // Extract column (e.g., "A" -> 1)
+    col = ref[0] - 'A' + 1;
+
+    // Extract row (e.g., "1" -> 1)
+    try {
+        row = std::stoi(ref.substr(1));
+    } catch (const std::invalid_argument&) {
+        return false;
+    }
+
+    return true;
+}
+
+} // namespace Spreadsheet

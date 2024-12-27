@@ -23,7 +23,7 @@ class Cell {
 		virtual string getDisplayValue() const = 0;
 		virtual void setNeedsRecalculation(bool needsRecalculation) = 0;
 		virtual bool needsRecalculation() const = 0;
-
+		virtual double value() const;
 };
 
 class FormulaCell : public Cell{

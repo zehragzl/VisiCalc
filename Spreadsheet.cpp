@@ -1,6 +1,8 @@
 #include "Spreadsheet.h"
 #include "Cell.h"
 #include "AnsiTerminal.h"
+#include "FormulaParser.h"
+
 #include <iostream>
 #include <memory>
 
@@ -56,13 +58,12 @@ void Spreadsheet::enterCellData(int row, int col, const std::string& input) {
     }
 
     if (input[0] == '=') { // Formula handling
-        Cell* cell = getCell(row, col);
-        FormulaCell* formulaCell = dynamic_cast<FormulaCell*>(cell);
-        if (formulaCell) {
-            formulaCell->setFormula(input);
-            formulaCell->setNeedsRecalculation(true);
-        } else {
-            setCell(row, col, std::make_unique<FormulaCell>(input));
+        FormulaParser parser(*this); // Create a formula parser
+        try {
+            double result = parser.parseFormula(input); // Parse and evaluate the formula
+            setCell(row, col, std::make_unique<DoubleValueCell>(result)); // Store the result
+        } catch (const std::exception& e) {
+            std::cerr << "Error in formula: " << e.what() << std::endl;
         }
     } else { // Value handling
         try {

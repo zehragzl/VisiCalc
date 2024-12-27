@@ -1,24 +1,30 @@
 #ifndef FORMULAPARSER_H
 #define FORMULAPARSER_H
 
-#include <unordered_map>
 #include <string>
-#include <vector>
-#include <functional>
+#include <stdexcept>
+#include "Spreadsheet.h"
+
+namespace Spreadsheet {
 
 class FormulaParser {
 public:
-    // Constructor: Initializes the formula parser with rows, columns, and cell values
-    FormulaParser(int rows, int cols, std::unordered_map<std::string, double> cellValues);
-    
-    // Main function to evaluate an expression
-    double evaluateExpression(const std::string& expr, const std::unordered_map<std::string, double>& cellValues);
+    // Constructor
+    FormulaParser(const Spreadsheet& spreadsheet);
 
+    // Parse a formula (e.g., "=A1+A2")
+    double parseFormula(const std::string& formula);
 
 private:
-    int rows; 
-    int cols; 
-    std::unordered_map<std::string, double> cellValues;  // A map of cell references to values
+    const Spreadsheet& spreadsheet;
+
+    // Trim leading and trailing spaces
+    std::string trim(const std::string& str) const;
+
+    // Parse a cell reference (e.g., "A1" -> row and column indices)
+    bool parseCellReference(const std::string& ref, int& row, int& col) const;
 };
 
-#endif
+} // namespace Spreadsheet
+
+#endif // FORMULAPARSER_H
