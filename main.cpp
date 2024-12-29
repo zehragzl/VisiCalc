@@ -3,15 +3,58 @@
 #include "FileManager.h"
 #include <iostream>
 #include <string>
+#include <limits>
 
 using namespace std;
 using namespace Spreadsheet;
+
+void clearInputBuffer() {
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');  // Clear the input buffer
+}
+
+int getPositiveInt(const string& prompt) {
+    int value;
+    while (true) {
+        cout << prompt;
+        cin >> value;
+        if (cin.fail() || value <= 0) {
+            cin.clear();
+            clearInputBuffer();
+            cout << "Invalid input. Please enter a positive integer." << endl;
+        } else {
+            clearInputBuffer();
+            return value;
+        }
+    }
+}
+
+string getInputString(const string& prompt) {
+    cout << prompt;
+    string input;
+    char ch;
+    while (true) {
+        ch = cin.get();  // Read one character at a time
+        if (ch == '\n') {  // Stop when Enter is pressed
+            break;
+        }
+        if (ch == 127) {  // Handle backspace (ASCII 127)
+            if (!input.empty()) {
+                input.pop_back();  // Remove last character
+                cout << "\b \b";  // Move cursor back and overwrite the character with space
+            }
+        } else {
+            input += ch;  // Add the character to the input string
+            cout << ch;  // Echo the character as it is typed
+        }
+    }
+    return input;
+}
 
 int main() {
     AnsiTerminal terminal;  // Create an instance of the terminal class
     terminal.clearScreen(); // Clear the screen at the beginning
 
-    Spreadsheet::Spreadsheet sheet(100, 100); // Create a spreadsheet with 20 rows and 20 columns
+    Spreadsheet::Spreadsheet sheet(100, 100); // Create a spreadsheet with 100 rows and 100 columns
     int row = 1, col = 1;  // Initial position of the cursor
     int maxDisplayRows = 20;  // Maximum number of rows to display on screen
     int maxDisplayCols = 80;  // Maximum number of columns to display on screen
@@ -29,30 +72,17 @@ int main() {
         switch (key) {
             case 'G': {  // Adjust display dimensions if 'G' is pressed
                 terminal.moveCursor(1, 1);
-                cout << "Enter new number of display rows: ";
-                int newRows;
-                cin >> newRows;
+                maxDisplayRows = getPositiveInt("Enter new number of display rows: ");
+                maxDisplayCols = getPositiveInt("Enter new number of display columns: ");
 
-                cout << "Enter new number of display columns: ";
-                int newCols;
-                cin >> newCols;
-
-                if (newRows > 0 && newCols > 0) {
-                    maxDisplayRows = newRows;
-                    maxDisplayCols = newCols;
-
-                    terminal.clearScreen();  // Clear the screen for a fresh display
-                    sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);  // Redisplay the spreadsheet
-                } else {
-                    cout << "Invalid dimensions entered!";
-                }
-
+                terminal.clearScreen();  // Clear the screen for a fresh display
+                sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);  // Redisplay the spreadsheet
                 break;
             }
-            case 'U': row = (row > 1) ? row - 1 : row; break;  // Move cursor up
-            case 'D': row = (row < maxDisplayRows) ? row + 1 : row; break;  // Move cursor down
-            case 'R': col = (col < maxDisplayCols) ? col + 1 : col; break;  // Move cursor right
-            case 'L': col = (col > 1) ? col - 1 : col; break;  // Move cursor left
+            case 'U': row = max(1, row - 1); break;  // Move cursor up
+            case 'D': row = min(maxDisplayRows, row + 1); break;  // Move cursor down
+            case 'R': col = min(maxDisplayCols, col + 1); break;  // Move cursor right
+            case 'L': col = max(1, col - 1); break;  // Move cursor left
             case 'q': return 0;  // Quit program if 'q' is pressed
 
             case 'E': {  // Enter cell data if 'E' is pressed
@@ -60,9 +90,9 @@ int main() {
                 cout << sheet.getCellReference(row, col) << ": "; // Show cell reference
                 terminal.moveCursor(2, 1);  // Move cursor to input position
                 input.clear();  // Clear the input string for new input
-                char ch;
 
                 // Capture input character by character
+                char ch;
                 while (true) {
                     ch = cin.get();  // Read one character at a time
                     if (ch == '\n') {  // If Enter is pressed, stop input
@@ -74,59 +104,38 @@ int main() {
                 }
 
                 // After input is done, process the input
-                sheet.enterCellData(row, col, input);  // Assuming `enterCellData` is defined in `Spreadsheet` class
-                sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);  // Refresh display
+                try {
+                    sheet.enterCellData(row, col, input);  // Assuming `enterCellData` is defined in `Spreadsheet` class
+                    sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);  // Refresh display
+                } catch (const exception& e) {
+                    cout << "Error: " << e.what() << endl;  // Display any error that occurs
+                }
                 break;
             }
 
             case 's': {  // Save the spreadsheet to a file if 's' is pressed
-                terminal.moveCursor(1, 1);  // Move the cursor to a specific location on the screen
-                cout << "Enter filename to save the spreadsheet: ";
-                string saveFilename;
-                char c;
-
-                // Capture filename character by character
-                while (true) {
-                    c = std::cin.get();  // Read one character at a time
-
-                    if (c == '\n') {  // Stop when Enter is pressed
-                        break;
-                    }
-
-                    cout << c;  // Display the character immediately
-                    saveFilename += c;  // Append the character to the filename
+                terminal.moveCursor(1, 1); 
+                string saveFilename = getInputString("Enter filename to save the spreadsheet: ");
+                try {
+                    FileManager::saveToCSV(sheet, saveFilename);
+                    cout << "Spreadsheet saved successfully." << endl;
+                } catch (const exception& e) {
+                    cout << "Error saving file: " << e.what() << endl;
                 }
-
-                // Save the spreadsheet to the specified file
-                FileManager::saveToCSV(sheet, saveFilename);
                 break;
             }
 
            case 'l': {  // Load a spreadsheet from a file if 'l' is pressed
-                terminal.moveCursor(1, 1);  // Move the cursor to a specific location on the screen
-                cout << "Enter filename to load the spreadsheet: ";
-                string loadFilename;
-                char c;
-
-                // Capture filename character by character
-                while (true) {
-                    c = std::cin.get();  // Read one character at a time
-
-                    if (c == '\n') {  // Stop when Enter is pressed
-                        break;
-                    }
-
-                    cout << c;  // Display the character immediately
-                    loadFilename += c;  // Append the character to the filename
+                terminal.moveCursor(1, 1); 
+                string loadFilename = getInputString("Enter filename to load the spreadsheet: ");
+                try {
+                    FileManager::loadFromCSV(sheet, loadFilename);
+                    terminal.clearScreen();  // Clear the screen to redraw the table
+                    sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);
+                    cout << "Spreadsheet loaded successfully." << endl;
+                } catch (const exception& e) {
+                    cout << "Error loading file: " << e.what() << endl;
                 }
-
-                // Load the spreadsheet from the specified file
-                FileManager::loadFromCSV(sheet, loadFilename);
-
-                // Immediately update and display the spreadsheet
-                terminal.clearScreen();  // Clear the screen to redraw the table
-                sheet.displaySpreadsheet(maxDisplayRows, maxDisplayCols);
-
                 break;
             }
             // You can add additional case statements here as needed

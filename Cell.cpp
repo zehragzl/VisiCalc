@@ -1,98 +1,91 @@
 #include "Cell.h"
-using namespace std;
-#include <string>
 
-double Cell::value() const {
-    // If the cell is of type IntValueCell, return the integer value
-    if (const IntValueCell* intCell = dynamic_cast<const IntValueCell*>(this)) {
-        return static_cast<double>(intCell->getValue());  // Cast the integer to double
-    }
-    
-    // If the cell is of type DoubleValueCell, return the double value
-    if (const DoubleValueCell* doubleCell = dynamic_cast<const DoubleValueCell*>(this)) {
-        return doubleCell->getValue();  // Return the double value
-    }
+// FormulaCell
+FormulaCell::FormulaCell(const string& formula) : formulaValue(formula) {}
 
-    // If the cell type is not recognized (e.g., String, Formula, or Empty), return 0
-    return 0.0;
-}
-// FormulaCell Implementation
-FormulaCell::FormulaCell(const string& formula="") : formulaValue(formula) {
-	recalculate = true;
-}
-void FormulaCell::setFormula(const string& formula){
-	formulaValue = formula;
-	recalculate = true;
-
-	//updateDependencies(this);
-}
-string FormulaCell::getFormula() const {return formulaValue;}
-string FormulaCell::getDisplayValue() const  {
-	return formulaValue;
-}
-Cell::ValueType FormulaCell:: getType() const  {
-	return ValueType::FORMULA;
-}
-void FormulaCell::setNeedsRecalculation(bool needsRecalculation) {
-    recalculate = needsRecalculation;
+void FormulaCell::setFormula(const string& formula) {
+    formulaValue = formula;
 }
 
-bool FormulaCell::needsRecalculation() const {
-    return recalculate;
+string FormulaCell::getFormula() const {
+    return formulaValue;
 }
 
-// ValueCell Implementation
-
-ValueCell::ValueCell(ValueType t) : type(t), recalculate(false) {}
-
-Cell::ValueType ValueCell::getType() const {
-    return type;
+string FormulaCell::getDisplayValue() const {
+    return formulaValue; // Assuming that the formula is stored as a string representation.
+}
+double FormulaCell::value() const {
+    return 0.0; // Assuming non-numeric string cells return 0.0 (could throw exception or NaN instead)
+}
+std::unique_ptr<Cell> FormulaCell::clone() const {
+    return std::make_unique<FormulaCell>(*this);  // Clone the current FormulaCell object
 }
 
-void ValueCell::setNeedsRecalculation(bool needsRecalculation) {
-    recalculate = needsRecalculation;
-}
+// IntValueCell
+IntValueCell::IntValueCell(int value) : ValueCell(), intValue(value) {}
 
-bool ValueCell::needsRecalculation() const {
-    return recalculate;
-}
-
-// IntValueCell Implementation
-IntValueCell::IntValueCell(int value) : ValueCell(Cell::ValueType::NUMBER), intValue(value) {
-}
 
 void IntValueCell::setValue(int value) {
-	intValue = value;
-}
-int  IntValueCell::getValue() const {return intValue;}
-
-string IntValueCell::getDisplayValue() const  {
-	return to_string(intValue);
+    intValue = value;
 }
 
-// DoubleValueCell Implementation
-DoubleValueCell::DoubleValueCell(double value) : ValueCell(Cell::ValueType::NUMBER), doubleValue(value) {
+int IntValueCell::getValue() const {
+    return intValue;
 }
+
+string IntValueCell::getDisplayValue() const {
+    stringstream ss;
+    ss << intValue;
+    return ss.str();
+}
+double IntValueCell::value() const {
+    return static_cast<double>(intValue); // Return the integer as a double
+}
+std::unique_ptr<Cell> IntValueCell::clone() const {
+    return std::make_unique<IntValueCell>(*this);  // Clone the current IntValueCell object
+}
+
+// DoubleValueCell
+DoubleValueCell::DoubleValueCell(double value) : ValueCell(), doubleValue(value) {}
 
 void DoubleValueCell::setValue(double value) {
-	doubleValue = value;
-}
-double DoubleValueCell::getValue() const {return doubleValue;}
-string DoubleValueCell::getDisplayValue() const  {
-	std::ostringstream oss;
-    oss << doubleValue;
-    return oss.str();
+    doubleValue = value;
 }
 
-// StringValueCell Implementation
-StringValueCell::StringValueCell(const string& value = "") : ValueCell(Cell::ValueType::STRING), strValue(value) {
+double DoubleValueCell::getValue() const {
+    return doubleValue;
 }
+
+string DoubleValueCell::getDisplayValue() const {
+    stringstream ss;
+    ss << doubleValue;
+    return ss.str();
+}
+double DoubleValueCell::value() const {
+    return doubleValue; // Return the double value
+}
+std::unique_ptr<Cell> DoubleValueCell::clone() const {
+    return std::make_unique<DoubleValueCell>(*this);  // Clone the current DoubleValueCell object
+}
+
+// StringValueCell
+StringValueCell::StringValueCell(const string& value) : ValueCell(), strValue(value) {}
 
 void StringValueCell::setValue(const string& value) {
-	strValue = value;
+    strValue = value;
 }
-string StringValueCell:: getValue() const {return strValue;}
 
-string StringValueCell::getDisplayValue() const  {
-	return strValue;
+string StringValueCell::getValue() const {
+    return strValue;
+}
+
+string StringValueCell::getDisplayValue() const {
+    return strValue;
+}
+
+double StringValueCell::value() const {
+    return 0.0; // Assuming non-numeric string cells return 0.0 (could throw exception or NaN instead)
+}
+std::unique_ptr<Cell> StringValueCell::clone() const {
+    return std::make_unique<StringValueCell>(*this);  // Clone the current StringValueCell object
 }

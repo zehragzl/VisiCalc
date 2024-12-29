@@ -2,16 +2,14 @@
 #include "Cell.h"
 #include "AnsiTerminal.h"
 #include "FormulaParser.h"
-
 #include <iostream>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <stdexcept>
 
 namespace Spreadsheet {
 
-
-template std::string Spreadsheet::getCellContent<std::string>(int, int) const;
-
-    // Spreadsheet.cpp dosyasına ekleme yapın
 OutOfBounds::OutOfBounds(const std::string& message) : std::runtime_error(message) {}
 
 InvalidFormula::InvalidFormula(const std::string& message) : std::runtime_error(message) {}
@@ -39,8 +37,9 @@ const std::unique_ptr<Cell>& Grid<T>::at(int row, int col) const {
 
 Spreadsheet::Spreadsheet(int rows, int cols) : rows(rows), cols(cols), grid(rows, cols) {}
 
-    int Spreadsheet::getRowCount() const { return rows; } // Satır sayısını döner
-    int Spreadsheet::getColCount() const { return cols; } // Sütun sayısını döner
+int Spreadsheet::getRowCount() const { return rows; }
+
+int Spreadsheet::getColCount() const { return cols; }
 
 void Spreadsheet::setCell(int row, int col, std::unique_ptr<Cell> cell) {
     grid.at(row - 1, col - 1) = std::move(cell); // Adjusted for 1-based indexing
@@ -53,41 +52,59 @@ Cell* Spreadsheet::getCell(int row, int col) const {
 
 void Spreadsheet::enterCellData(int row, int col, const std::string& input) {
     if (row <= 0 || row > rows || col <= 0 || col > cols) {
-        std::cerr << "Error: Invalid cell reference." << std::endl;
+        std::cerr << "Hata: Geçersiz hücre referansı." << std::endl;
         return;
     }
 
-    if (input[0] == '=') { // Formula handling
-        FormulaParser parser(*this); // Create a formula parser
-        try {
-            double result = parser.parseFormula(input); // Parse and evaluate the formula
-            setCell(row, col, std::make_unique<DoubleValueCell>(result)); // Store the result
-        } catch (const std::exception& e) {
-            std::cerr << "Error in formula: " << e.what() << std::endl;
+    // Geçici olarak cellValues haritasını oluşturun
+    std::unordered_map<std::string, double> cellValues;  // Now it's a map of double
+
+    // Mevcut hücre verilerini haritaya ekleyin
+    for (int r = 1; r <= rows; ++r) {
+        for (int c = 1; c <= cols; ++c) {
+            std::string cellRef = getCellReference(r, c);
+            Cell* cell = getCell(r, c);
+            
+            // If the cell is a ValueCell, we extract the value (assumed to be a double)
+            if (cell) {
+                try {
+                    cellValues[cellRef] = cell->value();  // Store the value of the cell
+                } catch (const std::exception&) {
+                    cellValues[cellRef] = 0.0;  // If value() throws, we assume it's 0.0 for formulas
+                }
+            }
         }
-    } else { // Value handling
+    }
+
+    if (input[0] == '=') { // Formül işleme
+        FormulaParser parser(rows, cols, cellValues);  // Pass the new map of doubles
+
+        std::unordered_set<std::string> processing;
         try {
-            double doubleValue = std::stod(input); // Try to parse as double
-            if (doubleValue == static_cast<int>(doubleValue)) { 
-                // Check if it is a whole number (integer)
+            std::string formula = input.substr(1); // '=' karakterini kaldır
+            double result = parser.evaluateFormula(formula, processing);
+
+            // Sonucu hücreye kaydet
+            setCell(row, col, std::make_unique<DoubleValueCell>(result));
+        } catch (const std::exception& e) {
+            std::cerr << "Formülde hata: " << e.what() << std::endl;
+        }
+    } else { // Değer işleme
+        try {
+            double doubleValue = std::stod(input);
+            if (doubleValue == static_cast<int>(doubleValue)) {
                 setCell(row, col, std::make_unique<IntValueCell>(static_cast<int>(doubleValue)));
             } else {
                 setCell(row, col, std::make_unique<DoubleValueCell>(doubleValue));
             }
         } catch (const std::invalid_argument&) {
-            setCell(row, col, std::make_unique<StringValueCell>(input)); // If not a number, treat as string
+            setCell(row, col, std::make_unique<StringValueCell>(input));
         }
     }
 
-    displaySpreadsheet(rows, cols);
+    displaySpreadsheet(rows, cols); // Güncellenen tabloyu görüntüle
 }
 
-
-
-
-void Spreadsheet::recalculate() {
-    // Recalculate all formulas based on dependencies.
-}
 
 void Spreadsheet::displaySpreadsheet(int maxRows, int maxCols) const {
     AnsiTerminal terminal;
@@ -110,7 +127,7 @@ void Spreadsheet::displaySpreadsheet(int maxRows, int maxCols) const {
             }
 
             if (cellContent.size() > 10) {
-                cellContent = cellContent.substr(0, 10);
+                cellContent = cellContent.substr(0, 10); // Limit content length
             }
 
             terminal.printAt(row + 3, col * 10, cellContent);
@@ -126,8 +143,5 @@ std::string Spreadsheet::getCellReference(int row, int col) const {
     }
     return colRef + std::to_string(row);
 }
-
-
-
 
 } // namespace Spreadsheet
