@@ -7,9 +7,11 @@
 
 namespace Spreadsheet {
 
+// Constructor to initialize the number of rows, columns, and cell values
 FormulaParser::FormulaParser(int rows, int cols, std::unordered_map<std::string, double> cellValues)
     : rows(rows), cols(cols), cellValues(std::move(cellValues)) {}
 
+// Evaluates an arithmetic expression by replacing cell references with their values
 double FormulaParser::evaluateExpression(const std::string& expr, const std::unordered_map<std::string, double>& cellValues) {
     std::string modifiedExpr = expr;
 
@@ -31,6 +33,7 @@ double FormulaParser::evaluateExpression(const std::string& expr, const std::uno
 
     char op;
     double num;
+    // Process each operator in the expression (e.g., +, -, *, /)
     while (stream >> op >> num) {
         switch (op) {
             case '+': result += num; break;
@@ -48,13 +51,17 @@ double FormulaParser::evaluateExpression(const std::string& expr, const std::uno
     return result;
 }
 
+// Evaluates a formula and handles circular dependencies
 double FormulaParser::evaluateFormula(const std::string& formula, std::unordered_set<std::string>& processing) {
+    // Check if the formula is already being processed (circular dependency check)
     if (processing.find(formula) != processing.end()) {
         throw std::runtime_error("Cyclic dependency detected in formula: " + formula);
     }
 
+    // Mark the formula as being processed
     processing.insert(formula);
 
+    // Copy the current cell values to avoid modifying the original map
     std::unordered_map<std::string, double> cellValues;
     for (const auto& pair : this->cellValues) {
         cellValues[pair.first] = pair.second;
@@ -62,9 +69,10 @@ double FormulaParser::evaluateFormula(const std::string& formula, std::unordered
 
     double result = 0.0;
     try {
+        // Check for specific formulas (SUM, AVER, etc.)
         if (formula.find("SUM") == 0) {
             result = evaluateSum(formula, cellValues);
-        }else if (formula.find("AVER") == 0) {
+        } else if (formula.find("AVER") == 0) {
             result = evaluateAverage(formula, cellValues);
         } else if (formula.find("STDDEV") == 0) {
             result = evaluateStdDev(formula, cellValues);
@@ -81,10 +89,47 @@ double FormulaParser::evaluateFormula(const std::string& formula, std::unordered
         throw std::runtime_error("Error evaluating formula: " + std::string(e.what()));
     }
 
-    processing.erase(formula);
+    processing.erase(formula);  // Mark the formula as processed
     return result;
 }
 
+// Converts a column letter (e.g., "A") to its corresponding index (e.g., 0)
+int FormulaParser::columnToIndex(const std::string& col) {
+    int index = 0;
+    for (char c : col) {
+        index = index * 26 + (c - 'A' + 1);  // Adjust for 1-indexed column (A = 1)
+    }
+    return index - 1;  // Adjust for 0-indexed column
+}
+
+// Converts row and column indices to a cell reference (e.g., (0, 0) -> "A1")
+std::string FormulaParser::indexToCell(int row, int col) {
+    std::string cellRef;
+    while (col >= 0) {
+        cellRef = char('A' + col % 26) + cellRef;
+        col /= 26;
+        --col;  // Adjust for 1-indexed behavior
+    }
+    return cellRef + std::to_string(row + 1);  // Add 1 for 1-indexed row
+}
+
+// Extracts the start and end rows/columns from a range (e.g., "A1..A3")
+void FormulaParser::extractCellRange(const std::string& range, int& startRow, int& startCol, int& endRow, int& endCol) {
+    std::smatch match;
+    std::regex rangeRegex("([A-Z]+[0-9]+)\\.\\.([A-Z]+[0-9]+)");
+
+    if (std::regex_search(range, match, rangeRegex)) {
+        // Extract start cell (e.g., "A1")
+        startRow = std::stoi(match[1].str().substr(1)) - 1; // Adjust row to 0-indexed
+        startCol = columnToIndex(match[1].str().substr(0, match[1].str().length() - 1));
+
+        // Extract end cell (e.g., "A3")
+        endRow = std::stoi(match[2].str().substr(1)) - 1; // Adjust row to 0-indexed
+        endCol = columnToIndex(match[2].str().substr(0, match[2].str().length() - 1));
+    }
+}
+
+// Evaluates the SUM function for a given range (e.g., SUM(A1..A10))
 double FormulaParser::evaluateSum(const std::string& expr, const std::unordered_map<std::string, double>& cellValues) {
     std::regex rangeRegex("SUM\\(([A-Z]+[0-9]+)\\.\\.([A-Z]+[0-9]+)\\)");
     std::smatch match;
@@ -94,6 +139,7 @@ double FormulaParser::evaluateSum(const std::string& expr, const std::unordered_
         extractCellRange(expr, startRow, startCol, endRow, endCol);
 
         double sum = 0.0;
+        // Iterate over the range and sum the values of the cells
         for (int r = startRow; r <= endRow; ++r) {
             for (int c = startCol; c <= endCol; ++c) {
                 std::string cellRef = indexToCell(r, c);  // Convert index back to cell reference (e.g., "A1")
@@ -109,6 +155,7 @@ double FormulaParser::evaluateSum(const std::string& expr, const std::unordered_
     throw std::runtime_error("Invalid SUM expression");
 }
 
+// Evaluates the AVERAGE function for a given range (e.g., AVER(A1..A10))
 double FormulaParser::evaluateAverage(const std::string& expr, const std::unordered_map<std::string, double>& cellValues) {
     std::regex rangeRegex("AVER\\(([A-Z]+[0-9]+)\\.\\.([A-Z]+[0-9]+)\\)");
     std::smatch match;
@@ -119,6 +166,7 @@ double FormulaParser::evaluateAverage(const std::string& expr, const std::unorde
 
         double sum = 0.0;
         int count = 0;
+        // Iterate over the range and sum the values, also count the valid entries
         for (int r = startRow; r <= endRow; ++r) {
             for (int c = startCol; c <= endCol; ++c) {
                 std::string cellRef = indexToCell(r, c);
@@ -136,6 +184,7 @@ double FormulaParser::evaluateAverage(const std::string& expr, const std::unorde
     throw std::runtime_error("Invalid AVER expression");
 }
 
+// Evaluates the STDDEV function for a given range (e.g., STDDEV(A1..A10))
 double FormulaParser::evaluateStdDev(const std::string& expr, const std::unordered_map<std::string, double>& cellValues) {
     std::regex rangeRegex("STDDEV\\(([A-Z]+[0-9]+)\\.\\.([A-Z]+[0-9]+)\\)");
     std::smatch match;
@@ -145,6 +194,7 @@ double FormulaParser::evaluateStdDev(const std::string& expr, const std::unorder
         extractCellRange(expr, startRow, startCol, endRow, endCol);
 
         std::vector<double> values;
+        // Collect the values from the specified range
         for (int r = startRow; r <= endRow; ++r) {
             for (int c = startCol; c <= endCol; ++c) {
                 std::string cellRef = indexToCell(r, c);
@@ -157,12 +207,14 @@ double FormulaParser::evaluateStdDev(const std::string& expr, const std::unorder
         if (values.size() < 2) throw std::runtime_error("Cannot compute standard deviation: not enough values");
 
         double mean = 0.0;
+        // Calculate the mean
         for (double value : values) {
             mean += value;
         }
         mean /= values.size();
 
         double sumSqDiffs = 0.0;
+        // Calculate the sum of squared differences from the mean
         for (double value : values) {
             sumSqDiffs += (value - mean) * (value - mean);
         }
@@ -173,6 +225,7 @@ double FormulaParser::evaluateStdDev(const std::string& expr, const std::unorder
     throw std::runtime_error("Invalid STDDEV expression");
 }
 
+// Evaluates the MAX function for a given range (e.g., MAX(A1..A10))
 double FormulaParser::evaluateMax(const std::string& expr, const std::unordered_map<std::string, double>& cellValues) {
     std::regex rangeRegex("MAX\\(([A-Z]+[0-9]+)\\.\\.([A-Z]+[0-9]+)\\)");
     std::smatch match;
@@ -182,6 +235,7 @@ double FormulaParser::evaluateMax(const std::string& expr, const std::unordered_
         extractCellRange(expr, startRow, startCol, endRow, endCol);
 
         double max = -std::numeric_limits<double>::infinity();
+        // Iterate over the range to find the maximum value
         for (int r = startRow; r <= endRow; ++r) {
             for (int c = startCol; c <= endCol; ++c) {
                 std::string cellRef = indexToCell(r, c);
@@ -197,6 +251,7 @@ double FormulaParser::evaluateMax(const std::string& expr, const std::unordered_
     throw std::runtime_error("Invalid MAX expression");
 }
 
+// Evaluates the MIN function for a given range (e.g., MIN(A1..A10))
 double FormulaParser::evaluateMin(const std::string& expr, const std::unordered_map<std::string, double>& cellValues) {
     std::regex rangeRegex("MIN\\(([A-Z]+[0-9]+)\\.\\.([A-Z]+[0-9]+)\\)");
     std::smatch match;
@@ -206,6 +261,7 @@ double FormulaParser::evaluateMin(const std::string& expr, const std::unordered_
         extractCellRange(expr, startRow, startCol, endRow, endCol);
 
         double min = std::numeric_limits<double>::infinity();
+        // Iterate over the range to find the minimum value
         for (int r = startRow; r <= endRow; ++r) {
             for (int c = startCol; c <= endCol; ++c) {
                 std::string cellRef = indexToCell(r, c);
@@ -221,36 +277,4 @@ double FormulaParser::evaluateMin(const std::string& expr, const std::unordered_
     throw std::runtime_error("Invalid MIN expression");
 }
 
-int FormulaParser::columnToIndex(const std::string& col) {
-    int index = 0;
-    for (char c : col) {
-        index = index * 26 + (c - 'A');
-    }
-    return index;
-}
-
-std::string FormulaParser::indexToCell(int row, int col) {
-    std::string cellRef;
-    while (col >= 0) {
-        cellRef = char('A' + col % 26) + cellRef;
-        col /= 26;
-        --col;  // Adjust for 1-indexed behavior
-    }
-    return cellRef + std::to_string(row + 1);  // Add 1 for 1-indexed row
-}
-
-void FormulaParser::extractCellRange(const std::string& range, int& startRow, int& startCol, int& endRow, int& endCol) {
-    std::smatch match;
-    std::regex rangeRegex("([A-Z]+[0-9]+)\\.\\.([A-Z]+[0-9]+)");
-
-    if (std::regex_search(range, match, rangeRegex)) {
-        // Extract start cell (e.g., "A1")
-        startRow = std::stoi(match[1].str().substr(1)) - 1; // Adjust row to 0-indexed
-        startCol = columnToIndex(match[1].str().substr(0, match[1].str().length() - 1));
-
-        // Extract end cell (e.g., "A3")
-        endRow = std::stoi(match[2].str().substr(1)) - 1; // Adjust row to 0-indexed
-        endCol = columnToIndex(match[2].str().substr(0, match[2].str().length() - 1));
-    }
-}
 } // namespace Spreadsheet

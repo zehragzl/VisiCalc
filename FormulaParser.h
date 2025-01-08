@@ -10,30 +10,49 @@
 
 namespace Spreadsheet {
 
-class FormulaParser {
-public:
-    FormulaParser(int rows, int cols, std::unordered_map<std::string, double> cellValues);
-    int columnToIndex(const std::string& col);
-    std::string indexToCell(int row, int col);
-    // Formula parsing methods
-    double evaluateExpression(const std::string& expr, const std::unordered_map<std::string, double>& cellValues);
-    double evaluateFormula(const std::string& formula, std::unordered_set<std::string>& processing);
+    // Class to parse and evaluate formulas in a spreadsheet
+    class FormulaParser {
+    public:
+        // Constructor initializes the spreadsheet dimensions and cell values
+        FormulaParser(int rows, int cols, std::unordered_map<std::string, double> cellValues);
 
-private:
-    // Helpers for formula operations
-    double evaluateSum(const std::string& expr, const std::unordered_map<std::string, double>& cellValues);
-     double evaluateAverage(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
-    double evaluateStdDev(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
-    double evaluateMax(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
-    double evaluateMin(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
+        // Converts column letter (e.g., "A") to column index
+        int columnToIndex(const std::string& col);
 
-    // Helper functions
-    bool isValidCellReference(const std::string& ref);
-    void extractCellRange(const std::string& range, int& startRow, int& startCol, int& endRow, int& endCol);
+        // Converts row and column index to cell reference (e.g., "A1")
+        std::string indexToCell(int row, int col);
 
-    int rows, cols;
-    std::unordered_map<std::string, double> cellValues;
-};
+        // Evaluates an expression (e.g., "A1 + B1") based on cell values
+        double evaluateExpression(const std::string& expr, const std::unordered_map<std::string, double>& cellValues);
+
+        // Evaluates a formula and handles circular references
+        double evaluateFormula(const std::string& formula, std::unordered_set<std::string>& processing);
+
+    private:
+        // Evaluates SUM formula (e.g., "SUM(A1..A10)")
+        double evaluateSum(const std::string& expr, const std::unordered_map<std::string, double>& cellValues);
+
+        // Evaluates AVERAGE formula (e.g., "AVERAGE(A1..A10)")
+        double evaluateAverage(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
+
+        // Evaluates STDDEV formula (e.g., "STDDEV(A1..A10)")
+        double evaluateStdDev(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
+
+        // Evaluates MAX formula (e.g., "MAX(A1..A10)")
+        double evaluateMax(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
+
+        // Evaluates MIN formula (e.g., "MIN(A1..A10)")
+        double evaluateMin(const std::string& formula, const std::unordered_map<std::string, double>& cellValues);
+
+        // Checks if a given cell reference is valid
+        bool isValidCellReference(const std::string& ref);
+
+        // Extracts the start and end row/column from a cell range (e.g., "A1..A10")
+        void extractCellRange(const std::string& range, int& startRow, int& startCol, int& endRow, int& endCol);
+
+        int rows, cols;  // Dimensions of the spreadsheet
+        std::unordered_map<std::string, double> cellValues;  // Cell values in the spreadsheet
+    };
 
 } // namespace Spreadsheet
 
