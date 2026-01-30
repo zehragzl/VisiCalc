@@ -19,7 +19,7 @@ namespace Spreadsheet {
     // Constructor for Grid class, initializing grid with the specified rows and columns
    template <class T>
 Grid<T>::Grid(int rows, int cols) : rows(rows), cols(cols) {
-    grid = std::make_unique<std::vector<std::vector<std::unique_ptr<Cell>>>>(rows, std::vector<std::unique_ptr<Cell>>(cols));
+    grid = std::make_unique<std::unique_ptr<Cell>[]>(rows * cols);
 }
 
 template <class T>
@@ -27,7 +27,7 @@ std::unique_ptr<Cell>& Grid<T>::at(int row, int col) {
     if (row < 0 || row >= rows || col < 0 || col >= cols) {
         throw OutOfBounds("Accessing out-of-bounds cell.");
     }
-    return grid->at(row).at(col);
+    return grid[row * cols + col];
 }
 
 template <class T>
@@ -35,7 +35,7 @@ const std::unique_ptr<Cell>& Grid<T>::at(int row, int col) const {
     if (row < 0 || row >= rows || col < 0 || col >= cols) {
         throw OutOfBounds("Accessing out-of-bounds cell.");
     }
-    return grid->at(row).at(col);
+    return grid[row * cols + col];
 }
 
     // Constructor for the Spreadsheet class
