@@ -37,9 +37,10 @@ void AnsiTerminal::clearScreen() {
 
 // Method to get a single keystroke from the terminal
 char AnsiTerminal::getKeystroke() {
-    char ch;
-    read(STDIN_FILENO, &ch, 1);  // Read the first character
-
+    char ch = 0;
+    if (read(STDIN_FILENO, &ch, 1) != 1) {
+        return '\0'; // Return null character if read fails
+    }
     // If the character falls within ASCII range for control characters
     // Ctrl+A to Ctrl+Z are 0x01 to 0x1A, mapping to 'a' - '@'
     if (ch >= 1 && ch <= 26) {

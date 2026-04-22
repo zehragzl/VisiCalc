@@ -61,7 +61,7 @@ Cell* Spreadsheet::getCell(int row, int col) const {
     void Spreadsheet::enterCellData(int row, int col, const std::string& input) {
         // Check if the provided row and col are valid
         if (row <= 0 || row > rows || col <= 0 || col > cols) {
-            std::cerr << "Hata: Geçersiz hücre referansı." << std::endl; // Error message for invalid reference
+            std::cerr << "Error: Invalid cell reference." << std::endl;
             return;
         }
 
@@ -97,7 +97,7 @@ Cell* Spreadsheet::getCell(int row, int col) const {
                 // Save the result of the formula in the cell
                 setCell(row, col, std::unique_ptr<DoubleValueCell>(new DoubleValueCell(result)));
             } catch (const std::exception& e) {
-                std::cerr << "Formülde hata: " << e.what() << std::endl;  // Handle formula errors
+                std::cerr << "Formula error: " << e.what() << std::endl;
             }
         } else {  // Value processing
             try {

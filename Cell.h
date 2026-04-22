@@ -22,9 +22,9 @@ class FormulaCell : public Cell {
 		FormulaCell(const string& formula); // Constructor to initialize with a formula
 		void setFormula(const string& formula); // Sets a new formula for the cell
 		string getFormula() const ; // Gets the stored formula
-		string getDisplayValue() const; // Returns the formula as a string for display purposes
-		double value() const; // Evaluates the formula and returns its numeric value (placeholder implementation)
-		std::unique_ptr<Cell> clone() const; // Clones the current FormulaCell instance
+		string getDisplayValue() const override;
+		double value() const override;
+		std::unique_ptr<Cell> clone() const override;
 	private:
 		string formulaValue; // Stores the formula as a string
 };
@@ -33,7 +33,7 @@ class FormulaCell : public Cell {
 class ValueCell : public Cell {
     public:
         ValueCell() : recalculate(false) {}  // Initialize recalculate member variable
-        virtual string getDisplayValue() const = 0;  // Overridden by derived classes to return the cell value as a string
+        virtual string getDisplayValue() const = 0;
     protected:
         bool recalculate;  // Member variable for recalculation flag
 };
@@ -41,12 +41,12 @@ class ValueCell : public Cell {
 // Class representing an integer value cell
 class IntValueCell : public ValueCell {
 	public:
-		IntValueCell(int value = 0); // Constructor with default value of 0
-		void setValue(int value); // Sets a new integer value for the cell
-		int getValue() const; // Returns the stored integer value
-		string getDisplayValue() const; // Returns the integer value as a string
-		double value() const; // Returns the integer value as a double
-		std::unique_ptr<Cell> clone() const; // Clones the current IntValueCell instance
+		explicit IntValueCell(int value = 0);
+		void setValue(int value);
+		int getValue() const;
+		string getDisplayValue() const override;
+		double value() const override;
+		std::unique_ptr<Cell> clone() const override;
 	private:
 		int intValue; // Stores the integer value
 };
@@ -54,12 +54,12 @@ class IntValueCell : public ValueCell {
 // Class representing a double value cell
 class DoubleValueCell : public ValueCell {
 	public:
-		DoubleValueCell(double value = 0.0); // Constructor with default value of 0.0
-		void setValue(double value); // Sets a new double value for the cell
-		double getValue() const; // Returns the stored double value
-		string getDisplayValue() const; // Returns the double value as a string
-		double value() const; // Returns the double value
-		std::unique_ptr<Cell> clone() const; // Clones the current DoubleValueCell instance
+		explicit DoubleValueCell(double value = 0.0);
+		void setValue(double value);
+		double getValue() const;
+		string getDisplayValue() const override;
+		double value() const override;
+		std::unique_ptr<Cell> clone() const override;
 	private:
 		double doubleValue; // Stores the double value
 };
@@ -67,12 +67,12 @@ class DoubleValueCell : public ValueCell {
 // Class representing a string value cell
 class StringValueCell : public ValueCell {
 	public:
-		StringValueCell(const string& value); // Constructor to initialize with a string value
-		void setValue(const string& value); // Sets a new string value for the cell
-		string getValue() const; // Returns the stored string value
-		string getDisplayValue() const; // Returns the string value for display purposes
-		double value() const; // Returns a numerical representation of the string value (default 0.0)
-		std::unique_ptr<Cell> clone() const; // Clones the current StringValueCell instance
+		explicit StringValueCell(const string& value);
+		void setValue(const string& value);
+		string getValue() const;
+		string getDisplayValue() const override;
+		double value() const override;
+		std::unique_ptr<Cell> clone() const override;
 	private:
 		string strValue; // Stores the string value
 };
